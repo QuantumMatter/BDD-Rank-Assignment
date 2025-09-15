@@ -25,7 +25,8 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-  "numpy"
+  "numpy",
+  "scipy"
 ]
 
 [project.urls]
