@@ -158,3 +158,22 @@ To do this, we'll try to expand the number of edges that can be considered in th
 We'll pick the node in the unmatched set of nodes that has the smallest weight to get to a node in the matched set. To make the edge statisfy the constraint $y_i + y_j = c_{(i,j)}$, we'll need to adjust $y_i$ and/or $y_j$. We'll choose to update the node that is already in the matched set, so we preserve the relationship of all of the nodes not in the set. This will be the value $\delta = c_{(i,j)} - y_i - y_j$. However, this update will effect its constraint. What we find is that we need to all nodes in the bipartite group with $y_i$ need change by $\delta$, and all nodes in the other group need to change be $-\delta$.
 
 After this update to $y$ there should be another edge available for the matching, so we loop back to the primal step.
+
+# References
+
+* [UCSC CSE202 Combinatorial Algorithms Class Notes](https://users.soe.ucsc.edu/~sesh/Teaching/2021/CSE202/schedule.html)
+  * [Lecture 4: Linear Programming](https://users.soe.ucsc.edu/~sesh/Teaching/2021/CSE202/Slides/lec4-lp.pdf)
+  * [Lecture 5: LP Duality](https://users.soe.ucsc.edu/~sesh/Teaching/2021/CSE202/Slides/lec5-duality.pdf)
+  * [Lecture 9: The Hungarian Algorithm for Min-cost Bipartite Matchings](https://users.soe.ucsc.edu/~sesh/Teaching/2021/CSE202/Slides/lec9-hungarian.pdf)
+* https://math.mit.edu/~goemans/18310S15/lpnotes310.pdf
+* Hungarian Algorithm
+  * https://en.wikipedia.org/wiki/Hungarian_algorithm
+  * https://brilliant.org/wiki/hungarian-matching/
+  * https://www.thinkautonomous.ai/blog/hungarian-algorithm/
+* Graph Theory
+  * https://brilliant.org/wiki/matching/#definitions-and-terminology
+  * https://brilliant.org/wiki/matching-algorithms/#graph-labeling
+  * https://brilliant.org/wiki/vertex-cover/
+  * https://en.wikipedia.org/wiki/Perfect_matching
+  * https://en.wikipedia.org/wiki/Assignment_problem
+* https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.linear_sum_assignment.html
