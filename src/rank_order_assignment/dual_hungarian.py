@@ -181,3 +181,113 @@ if __name__ == '__main__':
 
         assert mcost == scost, "Solution doesn't match reference!"
         print(f'Passed n={n}')
+
+
+# ===== Convenience utilities to build costs, extract match, and compute cost =====
+from collections import defaultdict
+
+def build_cost_matrix(preferences, capacities, large_penalty=10**6):
+    """
+    Expand hospitals into individual slots and build a rectangular cost matrix.
+    preferences: List[List[int]] where preferences[d] is an ordered list of hospital ids for doctor d (0 = best)
+    capacities:  List[int] of length num_hospitals, or a single int (uniform capacity)
+    Returns:
+        C (ndarray) shape (num_doctors, num_slots)
+        hospital_slots: List[Tuple[int,int]] mapping slot_index -> (hospital_id, slot_id_within_hospital)
+    """
+    import numpy as np
+    num_doctors = len(preferences)
+    # infer hospital count from preferences
+    max_h = -1
+    for pref in preferences:
+        for h in pref:
+            if h > max_h:
+                max_h = h
+    num_hospitals = max_h + 1 if max_h >= 0 else 0
+
+    # normalize capacities
+    if isinstance(capacities, int):
+        capacities = [capacities] * num_hospitals
+    if len(capacities) != num_hospitals:
+        raise ValueError("capacities length must equal number of hospitals inferred from preferences")
+
+    # build slot list
+    hospital_slots = []
+    for h, cap in enumerate(capacities):
+        for s in range(cap):
+            hospital_slots.append((h, s))
+    num_slots = len(hospital_slots)
+
+    # precompute ranks for each doctor: dict hospital->rank
+    ranks = []
+    for pref in preferences:
+        ranks.append({h: r for r, h in enumerate(pref)})
+
+    # build rectangular cost
+    C = np.full((num_doctors, num_slots), large_penalty, dtype=float)
+    for d in range(num_doctors):
+        for j, (h, _) in enumerate(hospital_slots):
+            C[d, j] = ranks[d].get(h, large_penalty)
+
+    return C, hospital_slots
+
+def extract_match(matching, num_doctors, hospital_slots):
+    """
+    Convert 'matching' (length = num_cols) mapping column->row into
+    - match_list: List[(doctor_id, hospital_id)]
+    - by_hospital: Dict[hospital_id, List[doctor_id]]
+    Filters out any padding matches beyond original doctors/slots.
+    """
+    match_list = []
+    by_hospital = defaultdict(list)
+    num_slots = len(hospital_slots)
+    for col, row in enumerate(matching):
+        if row == -1: 
+            continue
+        if row >= num_doctors or col >= num_slots:
+            # padding introduced by the internal square padding
+            continue
+        h, _ = hospital_slots[col]
+        match_list.append((int(row), int(h)))
+        by_hospital[int(h)].append(int(row))
+    match_list.sort(key=lambda x: x[0])
+    # sort doctor lists per hospital for readability
+    for h in list(by_hospital.keys()):
+        by_hospital[h] = sorted(by_hospital[h])
+    return match_list, dict(by_hospital)
+
+def compute_total_cost(preferences, match_list, LARGE=10**6):
+    """
+    Compute total/average rank cost for a given assignment.
+    If a doctor is assigned to a hospital not in their preference list,
+    LARGE penalty is used.
+    """
+    ranks = [{h: idx for idx, h in enumerate(pref)} for pref in preferences]
+    total = 0.0
+    per_doc = {}
+    for d, h in match_list:
+        c = ranks[d].get(h, LARGE)
+        total += c
+        per_doc[d] = c
+    avg = total / max(len(match_list), 1)
+    return total, avg, per_doc
+
+def assign_doctors(preferences, capacities, large_penalty=10**6):
+    """
+    High-level helper that builds the cost matrix, runs Hungarian,
+    and returns the assignment plus summary.
+    """
+    import numpy as np
+    C_rect, hospital_slots = build_cost_matrix(preferences, capacities, large_penalty=large_penalty)
+    matching, dual_value = hungarian(C_rect.copy())  # matching: columns -> row indices
+    match_list, by_hospital = extract_match(matching, C_rect.shape[0], hospital_slots)
+    total, avg, per_doc = compute_total_cost(preferences, match_list, LARGE=large_penalty)
+    summary = {
+        "total_cost": float(total),
+        "avg_cost": float(avg),
+        "num_assigned": len(match_list),
+        "num_doctors": len(preferences),
+        "num_hospitals": len({h for h, _ in hospital_slots}),
+        "dual_value": float(dual_value),
+    }
+    return match_list, by_hospital, summary, per_doc
