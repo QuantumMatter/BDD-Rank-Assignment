@@ -126,4 +126,4 @@ def test_with_same_ratings_and_more_doctors_than_position():
 if __name__=="__main__": 
     test_more_doctors_than_position()
     test_with_same_ratings()
-    test_with_same_ratings_and_more_doctors_than_position()
+    test_with_same_ratings_and_more_doctors_than_position() 
